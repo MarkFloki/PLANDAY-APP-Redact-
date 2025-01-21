@@ -1,53 +1,52 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, FlatList } from 'react-native';
+import { View, Text, Button, FlatList, Alert } from 'react-native';
 
-const TaskScreen = () => {
+export default function TaskScreen({ navigation }) {
   const [tasks, setTasks] = useState([]);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
 
   useEffect(() => {
     fetchTasks();
   }, []);
 
   const fetchTasks = async () => {
-    const response = await fetch('http://localhost:8000/tasks/');
-    const data = await response.json();
-    setTasks(data);
+    try {
+      const response = await fetch('http://localhost:8000/tasks/');
+      const data = await response.json();
+      setTasks(data);
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+    }
   };
 
-  const createTask = async () => {
-    const response = await fetch('http://localhost:8000/tasks/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ title, description, completed: false }),
-    });
-    const newTask = await response.json();
-    setTasks([...tasks, newTask]);
+  const deleteTask = async (id) => {
+    try {
+      await fetch(`http://localhost:8000/tasks/${id}`, { method: 'DELETE' });
+      setTasks(tasks.filter((task) => task.id !== id));
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
   };
 
   return (
     <View>
-      <Text>Task Title</Text>
-      <TextInput value={title} onChangeText={setTitle} />
-      <Text>Task Description</Text>
-      <TextInput value={description} onChangeText={setDescription} />
-      <Button title="Create Task" onPress={createTask} />
-
+      <Text>Task Manager</Text>
+      {/* Кнопка перехода на экран создания задачи */}
+      <Button
+        title="Создать задачу"
+        onPress={() => navigation.navigate('CreateTask')}
+      />
+      {/* Список задач */}
       <FlatList
         data={tasks}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <View>
             <Text>{item.title}</Text>
             <Text>{item.description}</Text>
+            <Button title="Удалить" onPress={() => deleteTask(item.id)} />
           </View>
         )}
       />
     </View>
   );
-};
-
-export default TaskScreen;
+}

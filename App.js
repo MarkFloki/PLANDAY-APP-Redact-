@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { View, Text, TextInput, Button, FlatList, StyleSheet } from 'react-native';
 
 const API_URL = 'http://127.0.0.1:8000/tasks';
 
 export default function App() {
-  const [task, setTask] = useState('');
-  const [tasks, setTasks] = useState([]);
+  const [task, setTask] = React.useState('');
+  const [tasks, setTasks] = React.useState([]);
 
-  // Получение всех задач
+  // Fetch tasks
   const fetchTasks = async () => {
     try {
       const response = await fetch(API_URL);
@@ -18,7 +18,7 @@ export default function App() {
     }
   };
 
-  // Создание новой задачи
+  // Add a new task
   const addTask = async () => {
     try {
       const response = await fetch(API_URL, {
@@ -34,22 +34,7 @@ export default function App() {
     }
   };
 
-  // Обновление задачи
-  const updateTask = async (id, updatedTitle, completed) => {
-    try {
-      const response = await fetch(`${API_URL}/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: updatedTitle, completed }),
-      });
-      const updatedTask = await response.json();
-      setTasks(tasks.map((task) => (task.id === id ? updatedTask : task)));
-    } catch (error) {
-      console.error('Error updating task:', error);
-    }
-  };
-
-  // Удаление задачи
+  // Delete a task
   const deleteTask = async (id) => {
     try {
       await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
@@ -59,8 +44,7 @@ export default function App() {
     }
   };
 
-  // Загрузка задач при первом запуске
-  useEffect(() => {
+  React.useEffect(() => {
     fetchTasks();
   }, []);
 
@@ -76,7 +60,7 @@ export default function App() {
       <Button title="Add Task" onPress={addTask} />
       <FlatList
         data={tasks}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <View style={styles.taskContainer}>
             <Text style={styles.task}>{item.title}</Text>
@@ -87,7 +71,7 @@ export default function App() {
     </View>
   );
 }
-// Временный стиль
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
