@@ -1,21 +1,26 @@
-import React, { useState } from "react";
+import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { View, Text, Button, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import { NavigationContainer } from "@react-navigation/native";
+import { View, Text, Button } from "react-native";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import HomeScreen from "./HomeScreen"; // Ensure this is correctly defined
+import TaskScreen from "./TaskScreen"; // Ensure this is correctly defined
+import CalendarScreen from "./CalendarScreen"; // Ensure this is correctly defined
+import RegisterScreen from "./RegisterScreen"; // Import RegisterScreen
 import { Ionicons } from "@expo/vector-icons";
 
-// Оголошення типів для вкладок
+// Define tab types
 type TabParamList = {
   Home: undefined;
   Tasks: undefined;
   Calendar: undefined;
-  VoiceInput: undefined; // Новий екран для голосового вводу
+  Register: undefined;
 };
 
-// Екран Home
+// Home Screen
 type HomeScreenProps = BottomTabScreenProps<TabParamList, "Home">;
 
-function HomeScreen({ navigation }: HomeScreenProps) {
+function HomeScreenComponent({ navigation }: HomeScreenProps) {
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
       <Text>Welcome to the Home Screen!</Text>
@@ -27,10 +32,10 @@ function HomeScreen({ navigation }: HomeScreenProps) {
   );
 }
 
-// Екран Tasks
+// Tasks Screen
 type TaskScreenProps = BottomTabScreenProps<TabParamList, "Tasks">;
 
-function TaskScreen({ navigation }: TaskScreenProps) {
+function TaskScreenComponent({ navigation }: TaskScreenProps) {
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
       <Text>Task Manager Screen</Text>
@@ -38,10 +43,10 @@ function TaskScreen({ navigation }: TaskScreenProps) {
   );
 }
 
-// Екран Calendar
+// Calendar Screen
 type CalendarScreenProps = BottomTabScreenProps<TabParamList, "Calendar">;
 
-function CalendarScreen({ navigation }: CalendarScreenProps) {
+function CalendarScreenComponent({ navigation }: CalendarScreenProps) {
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
       <Text>Calendar Screen</Text>
@@ -49,126 +54,51 @@ function CalendarScreen({ navigation }: CalendarScreenProps) {
   );
 }
 
-// Екран VoiceInput (новий)
-type VoiceInputScreenProps = BottomTabScreenProps<TabParamList, "VoiceInput">;
+// Register Screen
+type RegisterScreenProps = BottomTabScreenProps<TabParamList, "Register">;
 
-function VoiceInputScreen({}: VoiceInputScreenProps) {
-  const [transcript, setTranscript] = useState("");
-  const [listening, setListening] = useState(false);
-
-  const SpeechRecognition =
-    (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-
-  if (SpeechRecognition) {
-    const recognition = new SpeechRecognition();
-    recognition.lang = "en-US";
-    recognition.interimResults = false;
-
-    recognition.onstart = () => {
-      setListening(true);
-    };
-
-    recognition.onresult = (event: any) => {
-      const spokenText = event.results[0][0].transcript;
-      setTranscript(spokenText);
-      setListening(false);
-    };
-
-    recognition.onend = () => {
-      setListening(false);
-    };
-
-    recognition.onerror = (event: any) => {
-      console.error("Recognition error:", event.error);
-      setListening(false);
-    };
-
-    const startListening = () => {
-      recognition.start();
-    };
-
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Voice to Text</Text>
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Your transcribed text will appear here"
-            value={transcript}
-            onChangeText={setTranscript}
-          />
-          <TouchableOpacity
-            style={styles.micButton}
-            onPress={startListening}
-            disabled={listening}
-          >
-            <Ionicons
-              name={listening ? "mic" : "mic-outline"}
-              size={32}
-              color={listening ? "red" : "black"}
-            />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.hint}>Press the microphone icon to start voice input.</Text>
-      </View>
-    );
-  } else {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Voice recognition is not supported on your device.</Text>
-      </View>
-    );
-  }
+function RegisterScreenComponent({ navigation }: RegisterScreenProps) {
+  return (
+    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <Text>Register Screen</Text>
+    </View>
+  );
 }
 
-// Навігація Tab Navigator
+// Tab Navigator
 const Tab = createBottomTabNavigator<TabParamList>();
 
 export default function IndexNavigator() {
   return (
-    <Tab.Navigator>
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Tasks" component={TaskScreen} />
-      <Tab.Screen name="Calendar" component={CalendarScreen} />
-      <Tab.Screen name="VoiceInput" component={VoiceInputScreen} /> {/* Новий екран */}
-    </Tab.Navigator>
+    <NavigationContainer>
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          tabBarIcon: ({ color, size }) => {
+            let iconName: string;
+
+            if (route.name === "Home") {
+              iconName = "home";
+            } else if (route.name === "Tasks") {
+              iconName = "list";
+            } else if (route.name === "Calendar") {
+              iconName = "calendar";
+            } else if (route.name === "Register") {
+              iconName = "person-add";
+            } else {
+              iconName = "help-circle";
+            }
+
+            return <Ionicons name={iconName} size={size} color={color} />;
+          },
+          tabBarActiveTintColor: "tomato",
+          tabBarInactiveTintColor: "gray",
+        })}
+      >
+        <Tab.Screen name="Home" component={HomeScreenComponent} />
+        <Tab.Screen name="Tasks" component={TaskScreenComponent} />
+        <Tab.Screen name="Calendar" component={CalendarScreenComponent} />
+        <Tab.Screen name="Register" component={RegisterScreen} />
+      </Tab.Navigator>
+    </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-    backgroundColor: "#f5f5f5",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 10,
-    width: "100%",
-    backgroundColor: "#fff",
-  },
-  input: {
-    flex: 1,
-    fontSize: 18,
-    padding: 8,
-  },
-  micButton: {
-    marginLeft: 10,
-  },
-  hint: {
-    marginTop: 20,
-    fontSize: 16,
-    color: "#666",
-  },
-});
