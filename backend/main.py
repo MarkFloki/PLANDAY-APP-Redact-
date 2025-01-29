@@ -1,53 +1,74 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional
-import uuid
+from auth import router as auth_router
+from tasks import router as tasks_router
+from mood import router as mood_router
+import datetime
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
 
 app = FastAPI()
 
-# Модель данных для задачи
+app.include_router(auth_router)
+app.include_router(tasks_router)
+app.include_router(mood_router)
+
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the API"}
+
+#  Данные для Google Calendar API (замени своими)
+SERVICE_ACCOUNT_FILE = "path/to/service-account.json"
+SCOPES = ["https://www.googleapis.com/auth/calendar"]
+credentials = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+calendar_service = build("calendar", "v3", credentials=credentials)
+
+#  Модель данных для создания задачи
 class Task(BaseModel):
-    id: Optional[str] = None  # Делаем id необязательным
     title: str
-    description: Optional[str] = None
-    completed: bool = False
+    description: str
+    date: str  # YYYY-MM-DD
+    time: str  # HH:MM
+    user_email: str  # Почта для добавления в календарь
 
-tasks = {}
-
-# Создание задачи
-@app.post("/tasks/", response_model=Task)
+@app.post("/create_task/")
 async def create_task(task: Task):
-    task.id = str(uuid.uuid4())  # Генерация уникального id
-    tasks[task.id] = task
-    return task
+    """ Создает задачу и добавляет ее в Google Calendar. """
+    event = {
+        "summary": task.title,
+        "description": task.description,
+        "start": {
+            "dateTime": f"{task.date}T{task.time}:00",
+            "timeZone": "UTC",
+        },
+        "end": {
+            "dateTime": f"{task.date}T{task.time}:00",
+            "timeZone": "UTC",
+        },
+    }
+    try:
+        event = calendar_service.events().insert(calendarId="primary", body=event).execute()
+        return {"message": "Task created successfully", "event_id": event.get("id")}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-# Чтение всех задач
-@app.get("/tasks/", response_model=List[Task])
-async def get_tasks():
-    return list(tasks.values())
+#  Модель настроения пользователя
+class Mood(BaseModel):
+    mood_level: int  # 1-5
+    date: str  # YYYY-MM-DD
 
-# Чтение одной задачи
-@app.get("/tasks/{task_id}", response_model=Task)
-async def get_task(task_id: str):
-    task = tasks.get(task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
-    return task
+user_moods = {}
 
-# Обновление задачи
-@app.put("/tasks/{task_id}", response_model=Task)
-async def update_task(task_id: str, updated_task: Task):
-    if task_id not in tasks:
-        raise HTTPException(status_code=404, detail="Task not found")
-    tasks[task_id].title = updated_task.title
-    tasks[task_id].description = updated_task.description
-    tasks[task_id].completed = updated_task.completed
-    return tasks[task_id]
+@app.post("/set_mood/")
+async def set_mood(mood: Mood):
+    """ Сохраняет настроение пользователя. """
+    user_moods[mood.date] = mood.mood_level
+    return {"message": "Mood saved", "mood": mood.mood_level}
 
-# Удаление задачи
-@app.delete("/tasks/{task_id}")
-async def delete_task(task_id: str):
-    if task_id not in tasks:
-        raise HTTPException(status_code=404, detail="Task not found")
-    del tasks[task_id]
-    return {"message": "Task deleted successfully"}
+@app.get("/get_mood/{date}")
+async def get_mood(date: str):
+    """ Получает настроение пользователя за определенную дату. """
+    mood = user_moods.get(date)
+    if mood is None:
+        raise HTTPException(status_code=404, detail="No mood data found")
+    return {"date": date, "mood": mood}
