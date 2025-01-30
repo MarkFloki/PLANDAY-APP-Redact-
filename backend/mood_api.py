@@ -1,21 +1,19 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
-from typing import List
-import datetime
+from fastapi import APIRouter, HTTPException
+from models import Mood
+from database import execute_query, fetch_query
 
-app = FastAPI()
+router = APIRouter()
 
-class Mood(BaseModel):
-    date: datetime.date
-    mood_level: int  # Например, от 1 до 5
+@router.post("/mood/")
+async def set_mood(mood: Mood):
+    """Сохраняет настроение."""
+    execute_query("INSERT INTO moods (date, mood_level) VALUES (?, ?)", (mood.date, mood.mood_level))
+    return {"message": "Mood saved"}
 
-moods = []
-
-@app.post("/mood/")
-async def add_mood(mood: Mood):
-    moods.append(mood)
-    return mood
-
-@app.get("/mood/", response_model=List[Mood])
-async def get_moods():
-    return moods
+@router.get("/mood/{date}")
+async def get_mood(date: str):
+    """Получает настроение по дате."""
+    mood = fetch_query("SELECT mood_level FROM moods WHERE date = ?", (date,))
+    if not mood:
+        raise HTTPException(status_code=404, detail="No mood data found")
+    return {"date": date, "mood": mood[0][0]}

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Button, FlatList, Alert } from 'react-native';
+import { View, Text, Button, FlatList, StyleSheet } from 'react-native';
+
+const API_URL = 'http://127.0.0.1:8000/tasks';
 
 export default function TaskScreen({ navigation }) {
   const [tasks, setTasks] = useState([]);
@@ -10,7 +12,7 @@ export default function TaskScreen({ navigation }) {
 
   const fetchTasks = async () => {
     try {
-      const response = await fetch('http://localhost:8000/tasks/');
+      const response = await fetch(API_URL);
       const data = await response.json();
       setTasks(data);
     } catch (error) {
@@ -20,7 +22,7 @@ export default function TaskScreen({ navigation }) {
 
   const deleteTask = async (id) => {
     try {
-      await fetch(`http://localhost:8000/tasks/${id}`, { method: 'DELETE' });
+      await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
       setTasks(tasks.filter((task) => task.id !== id));
     } catch (error) {
       console.error('Error deleting task:', error);
@@ -28,25 +30,52 @@ export default function TaskScreen({ navigation }) {
   };
 
   return (
-    <View>
-      <Text>Task Manager</Text>
-      {/* Кнопка перехода на экран создания задачи */}
+    <View style={styles.container}>
+      <Text style={styles.title}>Task Manager</Text>
       <Button
-        title="Создать задачу"
+        title="Create New Task"
         onPress={() => navigation.navigate('CreateTask')}
       />
-      {/* Список задач */}
+      <Button
+        title="Voice to Text"
+        onPress={() => navigation.navigate('VoiceToText')}
+      />
       <FlatList
         data={tasks}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <View>
-            <Text>{item.title}</Text>
-            <Text>{item.description}</Text>
-            <Button title="Удалить" onPress={() => deleteTask(item.id)} />
+          <View style={styles.taskContainer}>
+            <Text style={styles.task}>{item.title}</Text>
+            <Button title="Delete" onPress={() => deleteTask(item.id)} />
           </View>
         )}
       />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#f5f5f5',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  taskContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    padding: 8,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderColor: '#ddd',
+  },
+  task: {
+    fontSize: 16,
+  },
+});

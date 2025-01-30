@@ -1,13 +1,21 @@
 import React from 'react';
 import { View, Text, TextInput, Button, FlatList, StyleSheet } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import TaskScreen from './TaskScreen';
+import CreateTaskScreen from './CreateTaskScreen';
+import VoiceToTextScreen from './VoiceToTextScreen'; // Импорт нового экрана
 
 const API_URL = 'http://127.0.0.1:8000/tasks';
 
+const Stack = createStackNavigator();
+
 export default function App() {
+  // Состояния для задач
   const [task, setTask] = React.useState('');
   const [tasks, setTasks] = React.useState([]);
 
-  // Fetch tasks
+  // Функция получения задач
   const fetchTasks = async () => {
     try {
       const response = await fetch(API_URL);
@@ -18,7 +26,7 @@ export default function App() {
     }
   };
 
-  // Add a new task
+  // Функция добавления новой задачи
   const addTask = async () => {
     try {
       const response = await fetch(API_URL, {
@@ -34,7 +42,7 @@ export default function App() {
     }
   };
 
-  // Delete a task
+  // Функция удаления задачи
   const deleteTask = async (id) => {
     try {
       await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
@@ -44,31 +52,47 @@ export default function App() {
     }
   };
 
+  // Эффект для загрузки задач при первом рендере
   React.useEffect(() => {
     fetchTasks();
   }, []);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Task Manager</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter a new task"
-        value={task}
-        onChangeText={setTask}
-      />
-      <Button title="Add Task" onPress={addTask} />
-      <FlatList
-        data={tasks}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.taskContainer}>
-            <Text style={styles.task}>{item.title}</Text>
-            <Button title="Delete" onPress={() => deleteTask(item.id)} />
-          </View>
-        )}
-      />
-    </View>
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="Tasks">
+        {/* Экран со списком задач */}
+        <Stack.Screen name="Tasks" options={{ title: 'Task Manager' }}>
+          {() => (
+            <View style={styles.container}>
+              <Text style={styles.title}>Task Manager</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter a new task"
+                value={task}
+                onChangeText={setTask}
+              />
+              <Button title="Add Task" onPress={addTask} />
+              <FlatList
+                data={tasks}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => (
+                  <View style={styles.taskContainer}>
+                    <Text style={styles.task}>{item.title}</Text>
+                    <Button title="Delete" onPress={() => deleteTask(item.id)} />
+                  </View>
+                )}
+              />
+            </View>
+          )}
+        </Stack.Screen>
+
+        {/* Экран создания новой задачи */}
+        <Stack.Screen name="CreateTask" component={CreateTaskScreen} options={{ title: 'Create Task' }} />
+
+        {/* Экран голосового ввода */}
+        <Stack.Screen name="VoiceToText" component={VoiceToTextScreen} options={{ title: 'Voice to Text' }} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
